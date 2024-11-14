@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.apache.tomcat.jni.User;
 import org.springframework.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.example.service.*;
 import com.example.entity.*;
+import com.example.exception.UserExistsException;
 
 
 /**
@@ -25,26 +28,44 @@ public class SocialMediaController {
     private MessageService messageService;
     private AccountService accountService;
 
+    @Autowired
+    public SocialMediaController(MessageService messageService, AccountService accountService){
+        this.messageService = messageService;
+        this.accountService = accountService;
+    }
+
 
 
     //Handler for registering a new user
     //Returns the new user inserted given that the username isn't empty, does not already exist in the repository, 
     //and password is >4 characters. 
     //Duplicate username: Status 409 else: Status 400
+
     @PostMapping("/register")
-    public ResponseEntity<User> postNewUserHandler(@RequestBody Account account){
-        User registeredUser = accountService.registerAccount(account);
-        
-        return null;
+    public ResponseEntity<Account> postNewUserHandler(@RequestBody Account account){
+        Account registeredUser = accountService.registerAccount(account);
+        if(registeredUser == null){
+            return ResponseEntity.status(400).build();
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(registeredUser);
+    }
+
+    @ExceptionHandler(UserExistsException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ResponseEntity<String> HandleUserExists(UserExistsException e){
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     }
 
     //Handler for verifying login given json account
     //Logged in: Status 200 Unsuccessful login: Status 401
     //Return a logged in user if successful.
     @PostMapping("/login")
-    public User postUserLoginHandler(@RequestBody Account account){
-
-        return null;
+    public ResponseEntity<Account> postUserLoginHandler(@RequestBody Account account){
+        Account foundAccount = accountService.loginAccount(account);
+        if (foundAccount == null){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.status(200).body(foundAccount);
     }
 
     //Handler for making a new post given json message, excluding id
@@ -52,8 +73,12 @@ public class SocialMediaController {
     //Successful Status: 200 Unsuccessful Status: 400
     //Return a json message including id
     @PostMapping("/messages")
-    public Message postMessageHandler(@RequestBody Message message){
-        return null;
+    public ResponseEntity<Message> postMessageHandler(@RequestBody Message message){
+        Message postedMessage = messageService.postMessage(message);
+        if(message == null){
+            return ResponseEntity.status(400).build();
+        }
+        return ResponseEntity.status(200).body(postedMessage);
     }
 
     //Handler for getting all messages
