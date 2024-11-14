@@ -74,8 +74,17 @@ public class SocialMediaController {
     //Return a json message including id
     @PostMapping("/messages")
     public ResponseEntity<Message> postMessageHandler(@RequestBody Message message){
-        Message postedMessage = messageService.postMessage(message);
-        if(message == null){
+        Message postedMessage;
+        try {
+            postedMessage = messageService.postMessage(message);            
+        } catch (Exception e) {
+            System.out.println("Account posted by does not exist: Error");
+            return ResponseEntity.status(400).build();
+        }
+
+        Account postedAccount = accountService.identifyAccount(message);
+        
+        if(postedMessage == null || postedAccount == null){
             return ResponseEntity.status(400).build();
         }
         return ResponseEntity.status(200).body(postedMessage);
@@ -85,24 +94,24 @@ public class SocialMediaController {
     //Status: 200
     //Return a list of messages, empty if repository is empty
     @GetMapping("/messages")
-    public List<Message> getAllMessagesHandler(){
-        return new ArrayList<Message>();
+    public ResponseEntity<List<Message>> getAllMessagesHandler(){
+        return ResponseEntity.ok(messageService.getAllMessages()) ;
     }
 
     //Handler for getting a message based on an id
     //Status: 200
     //Return message picked, if id doesn't match, return an empty response
     @GetMapping("/messages/{messageId}")
-    public Message getMessageByIdHandler(@PathVariable int messageId){
-        return null;
+    public ResponseEntity<Message> getMessageByIdHandler(@PathVariable int messageId){
+        return ResponseEntity.ok(messageService.identifyMessage(messageId));
     }   
 
     //Handler for deleting a message based on id
     //Status: 200
     //Given the id, delete the message, and return the number of rows (entries) updated
     @DeleteMapping("/messages/{messageId}")
-    public int deleteMessageByIdHandler(@PathVariable int messageId){
-        return 0;
+    public ResponseEntity<Integer> deleteMessageByIdHandler(@PathVariable int messageId){
+        return ResponseEntity.ok(messageService.deleteMessage(messageId));
     }
 
     //Handler for updating a message based on id
@@ -110,16 +119,20 @@ public class SocialMediaController {
     //Given the id and new message, update if text is present and under 255 chars.
     //Return rows updated
     @PatchMapping("/messages/{messageId}")
-    public int patchMessageByIdHandler(@PathVariable int messageId){
-        return 0;
+    public ResponseEntity<Integer> patchMessageByIdHandler(@PathVariable int messageId, @RequestBody Message message){
+        Integer updated = messageService.updateMessage(messageId, message);
+        if(updated == null){
+            return ResponseEntity.status(400).build();
+        }
+        return ResponseEntity.status(200).body(1);
     }
 
     //Handler for getting all messages based on the user that posted them
     //Status: 200
     //Given the user's id, Return a list of all messages with that user's id in postedBy
     @GetMapping("/accounts/{accountId}/messages")
-    public List<Message> getMessageByUserHandler(@PathVariable int accountId){
-        return new ArrayList<>();
+    public ResponseEntity<List<Message>> getMessageByUserHandler(@PathVariable int accountId){
+        return ResponseEntity.ok(messageService.getUserMessages(accountId));
     }
 
 }

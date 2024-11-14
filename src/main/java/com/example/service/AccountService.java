@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.example.entity.Account;
+import com.example.entity.Message;
 import com.example.exception.UserExistsException;
 import com.example.repository.AccountRepository;
 
@@ -41,5 +42,9 @@ public class AccountService {
         }
         //System.out.println(account.getPassword() == loggedAccount.getPassword());
         return null;
+    }
+
+    public Account identifyAccount(Message message) {
+        return repository.getById(message.getPostedBy());
     }
 }
